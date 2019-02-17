@@ -1,0 +1,1 @@
+This is a map hider meant to ease DND gameplay over the intrenet. It's a work in progress.
