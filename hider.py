@@ -4,10 +4,13 @@ from tkinter.filedialog import askopenfilename,askdirectory
 import pickle
 
 class popupDirWindow():
-    def __init__(self,master,img):
+    def __init__(self,master,img,imgname="img"):
         self.img=img
+        self.imgname=imgname
         top=self.top=tk.Toplevel(master)
+        top.resizable(0,0)
         top.title("Dialogue")
+        top.protocol("WM_DELETE_WINDOW", self.cleanup)
         self.f1=tk.Frame(top)
         self.f2=tk.Frame(top)
         self.f1.pack()
@@ -15,24 +18,16 @@ class popupDirWindow():
         self.l1=tk.Label(self.f1,text="Chose an name:")
         self.l1.pack(side=tk.LEFT)
         self.e1=tk.Entry(self.f1)
-        self.e1.insert(0,"img")
+        self.e1.insert(0,imgname)
         self.e1.pack(side=tk.LEFT)
-        self.l2=tk.Label(self.f2,text="Chose a location:")
+        self.l2=tk.Label(self.f2,text='Image will be exported into the "exports" folder inside base folder')
         self.l2.pack(side=tk.LEFT)
-        self.e2=tk.Entry(self.f2)
-        self.e2.insert(0,"./")
-        self.e2.pack(side=tk.LEFT)
-        self.but=tk.Button(self.f2,command=self.getfile,text="Select")
-        self.but.pack(side=tk.LEFT)
         self.b=tk.Button(top,text='Ok',command=self.cleanup)
         self.b.pack()
-    def getfile(self):
-        n=askdirectory()
-        self.e2.delete(0,tk.END)
-        self.e2.insert(0,n)
+
     def cleanup(self):
         self.name=self.e1.get()
-        self.path=self.e2.get()
+        self.path="./exports/"
         path=self.path+self.name+".png"
         self.img.save(path,format="PNG")
         self.top.destroy()
@@ -41,6 +36,8 @@ class popupWindow():
     def __init__(self,master):
         top=self.top=tk.Toplevel(master)
         top.title("Dialogue")
+        top.resizable(0,0)
+        top.protocol("WM_DELETE_WINDOW", self.cleanup)
         self.f1=tk.Frame(top)
         self.f2=tk.Frame(top)
         self.f1.pack()
@@ -70,14 +67,63 @@ class popupWindow():
         self.img=self.e2.get()
         self.top.destroy()
 
+class userpopupWindow():
+    def __init__(self,master,image,width,height,room):
+        top=self.top=tk.Toplevel(master)
+        top.resizable(0,0)
+        top.title("Player view")
+        top.protocol("WM_DELETE_WINDOW", self.cleanup)
+        self.room=room
+        self.room.mb.menu.entryconfig(self.room.menuOpenPV,state=tk.DISABLED)
+        self.image=image
+        self.imgwidth=width
+        self.imgheight=height
+        self.fow = ImageTk.PhotoImage(self.image.fowgen)
+        self.tkimage = ImageTk.PhotoImage(self.image.img)
+        self.f1=tk.Frame(top)
+        self.f1.pack()
+        self.can = tk.Canvas(self.f1, width=self.imgwidth, height=self.imgheight)
+        self.can.pack()
+        self.imagecan=self.can.create_image(0,0, image=self.tkimage, anchor=tk.NW, )
+        self.fowim=self.can.create_image(0,0, image=self.fow, anchor=tk.NW, )
+        self.fowim2=self.can.create_image(0,0, image=self.fow, anchor=tk.NW, )
+        self.fowim3=self.can.create_image(0,0, image=self.fow, anchor=tk.NW, )
+        self.fowim4=self.can.create_image(0,0, image=self.fow, anchor=tk.NW, )
+        self.fowim5=self.can.create_image(0,0, image=self.fow, anchor=tk.NW, )
+        #self.b=tk.Button(top,text='Close',command=self.cleanup)
+        #self.b.pack()
+    
+    def shownewim(self,image,width,height):
+        self.image=image
+        self.imgwidth=width
+        self.imgheight=height
+        self.tkimage = ImageTk.PhotoImage(self.image.img)
+        self.can.itemconfig(self.imagecan, image=self.tkimage)
+        self.can.config(width=self.imgwidth,height=self.imgheight)
+        self.updateim()
+
+    def cleanup(self):
+        self.room.userpopup=""
+        self.room.mb.menu.entryconfig(self.room.menuOpenPV,state=tk.NORMAL)
+        self.top.destroy()
+
+    def updateim(self):
+        self.fow=ImageTk.PhotoImage(self.image.fowgen)
+        self.can.itemconfig(self.fowim, image=self.fow)
+        self.can.itemconfig(self.fowim2, image=self.fow)
+        self.can.itemconfig(self.fowim3, image=self.fow)
+        self.can.itemconfig(self.fowim4, image=self.fow)
+        self.can.itemconfig(self.fowim5, image=self.fow)
+
 class mainWin():
-    def __init__(self,master,im,usrid,gmid,openim=True):
+    def __init__(self,master,im,usrid,gmid,room,openim=True):
         self.lists = {
         "upxy":[0,0],
         "downxy":[0,0],
         "movexy":[0,0]
         }
         self.name=""
+        self.room=room
         self.master=master
         self.root=tk.Frame(self.master)
         self.root.pack(fill=tk.X,)
@@ -155,6 +201,8 @@ class mainWin():
             self.clr(self.lists["downxy"][0],self.lists["downxy"][1],x,y,z)
             self.can.itemconfig(self.box,state="hidden")
             self.movebox(0,0,0,0)
+            if not self.room.userpopup == "":
+                self.room.userpopup.updateim()
     
     def kill(self):
         self.root.destroy()
@@ -204,6 +252,8 @@ class mainWin():
                 self.fowgen.putpixel((x,y),(0,0,0,alpha))
         self.fow=ImageTk.PhotoImage(self.fowgen)
         self.can.itemconfig(self.fowim, image=self.fow)
+        if not self.room.userpopup == "":
+            self.room.userpopup.updateim()
         
     def movebox(self,x1,y1,x2,y2):
         self.can.coords(self.box,(x1,y1,x2,y2))
@@ -223,6 +273,8 @@ class mainWin():
                     self.fowgen.putpixel((x,y),(0,0,0,self.hidealpha))
         self.fow=ImageTk.PhotoImage(self.fowgen)
         self.can.itemconfig(self.fowim, image=self.fow)
+        if not self.room.userpopup == "":
+                self.room.userpopup.updateim()
 
     def setFowgen(self,gen):
         self.fowgen=gen
@@ -232,6 +284,7 @@ class room():
     def __init__(self,root,usrid=0,gmid=0):
         self.gmid=gmid
         self.usrid=usrid
+        self.userpopup=""
         self.imindex=0
         self.buttonwidth=80
         self.btswds=[]
@@ -256,8 +309,9 @@ class room():
         self.mb["menu"] =  self.mb.menu
         self.mb.menu.add_command(label="Save",command=self.save)
         self.mb.menu.add_command(label="Load",command=self.load)
-        self.mb.menu.add_command(label="Export image",command=self.exportimg)
-        self.mb.menu.add_command(label="Leave room",command=self.lvroom,state=tk.DISABLED)
+        self.mb.menu.add_command(label="Export image",command=self.exportimg,state=tk.NORMAL)
+        self.menuOpenPV=3
+        self.mb.menu.add_command(label="Open player view",command=self.opview)
         self.mb.menu.add_command(label="Exit program",command=lambda:exit())
         self.mb.pack(side=tk.RIGHT)
         #mb2
@@ -337,14 +391,17 @@ class room():
     def fixbtns(self,x):
         self.bts[x].config(command=lambda:self.shwin(x))
 
-    def lvroom(self):
-        pass
+    def opview(self):
+        im1=self.wins[self.imindex].img
+        im2=self.wins[self.imindex].fowgen
+        self.userpopup=userpopupWindow(self.top,self.wins[self.imindex],self.wins[self.imindex].imgwidth,self.wins[self.imindex].imgheight,self)
 
     def exportimg(self):
         im1=self.wins[self.imindex].img
         im2=self.wins[self.imindex].fowgen
+        name=self.wins[self.imindex].name
         n=Image.alpha_composite(im1, im2)
-        popupDirWindow(self.top,n)
+        popupDirWindow(self.top,n,name)
 
     def frmWth(self,index):
         self.wins[index].root.update()
@@ -367,7 +424,7 @@ class room():
 
     def loadnewIm(self,img,name):
         c=len(self.bts)
-        self.wins.append(mainWin(self.root,img,self.usrid,self.gmid,False))
+        self.wins.append(mainWin(self.root,img,self.usrid,self.gmid,self,False))
         self.bts.append(tk.Button(self.f,text=name,command=lambda:self.shwin(c)))
         self.mbts.append(self.mb2.menu.add_command(label=name,command=lambda:self.shwin(c)))
         self.bts[c].pack(side=tk.LEFT)
@@ -388,7 +445,7 @@ class room():
         self.but["state"] = "normal"
         if not hasattr(n,"name"):
             return
-        self.wins.append(mainWin(self.root,n.img,self.usrid,self.gmid))
+        self.wins.append(mainWin(self.root,n.img,self.usrid,self.gmid,self))
         self.bts.append(tk.Button(self.f,text=n.name,command=lambda:self.shwin(c)))
         self.mbts.append(self.mb2.menu.add_command(label=n.name,command=lambda:self.shwin(c)))
         self.bts[c].pack(side=tk.LEFT)
@@ -410,6 +467,8 @@ class room():
         self.imindex=index
         self.selectedL.config(text="Displaying: "+self.wins[index].name)
         self.frmWth(index)
+        if not self.userpopup == "":
+            self.userpopup.shownewim(self.wins[self.imindex],self.wins[self.imindex].imgwidth,self.wins[self.imindex].imgheight)
 
 class saveit():
     def __init__(self,win,gmid=0):
